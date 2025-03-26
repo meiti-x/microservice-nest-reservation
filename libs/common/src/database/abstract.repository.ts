@@ -2,10 +2,10 @@ import { AbstractDocument } from '@app/common/database/abstract.schema';
 import { Logger, NotFoundException } from '@nestjs/common';
 import { FilterQuery, Model, Types, UpdateQuery } from 'mongoose';
 
-export class AbstractRepository<TDocument extends AbstractDocument> {
+export abstract class AbstractRepository<TDocument extends AbstractDocument> {
   protected abstract readonly logger: Logger;
 
-  constructor(protected readonly model: Model<TDocument>) {}
+  protected constructor(protected readonly model: Model<TDocument>) {}
 
   async create(document: Omit<TDocument, '_id'>): Promise<TDocument> {
     const createdDoc = new this.model({
@@ -33,7 +33,10 @@ export class AbstractRepository<TDocument extends AbstractDocument> {
   }
 
   async delete(filter: FilterQuery<TDocument>) {
-    return this.model.findOneAndDelete(filter).lean<TDocument>(true);
+    const doc = await this.model.findOneAndDelete(filter);
+    if (!doc) {
+      throw new NotFoundException('document was not found');
+    }
   }
 
   async findOne(filter: FilterQuery<TDocument>): Promise<TDocument> {
